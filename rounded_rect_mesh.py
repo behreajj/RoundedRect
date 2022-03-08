@@ -8,20 +8,20 @@ from bpy.props import (
     FloatVectorProperty)
 
 bl_info = {
-    "name": "Create Rounded Rect",
+    "name": "Create Rounded Rect Mesh",
     "author": "Jeremy Behreandt",
     "version": (0, 1),
     "blender": (3, 0, 1),
     "category": "Add Mesh",
     "description": "Creates a rounded rectangle mesh.",
-    "tracker_url": "https://github.com/behreajj/"
+    "tracker_url": "https://github.com/behreajj/RoundedRect"
 }
 
 
-class RoundRectMaker(bpy.types.Operator):
-    """Creates a rounded rectangle"""
+class RndRectMeshMaker(bpy.types.Operator):
+    """Creates a rounded rectangle mesh"""
 
-    bl_idname = "mesh.primitive_rect_add"
+    bl_idname = "mesh.primitive_rect_mesh_add"
     bl_label = "Rectangle"
     bl_options = {"REGISTER", "UNDO"}
 
@@ -106,7 +106,7 @@ class RoundRectMaker(bpy.types.Operator):
             or br_res > 0 \
             or bl_res > 0
 
-        data = RoundRectMaker.create_rect_mesh(
+        data = RndRectMeshMaker.create_rect_mesh(
             lbx=self.tl[0], lby=self.br[1],
             ubx=self.br[0], uby=self.tl[1],
             tl=self.rounding[0], tr=self.rounding[1],
@@ -115,7 +115,7 @@ class RoundRectMaker(bpy.types.Operator):
             br_res=br_res, bl_res=bl_res,
             poly=self.poly_type)
 
-        bm = RoundRectMaker.mesh_data_to_bmesh(
+        bm = RndRectMeshMaker.mesh_data_to_bmesh(
             vs=data["vs"],
             vts=data["vts"],
             vns=data["vns"],
@@ -542,14 +542,14 @@ class RoundRectMaker(bpy.types.Operator):
 
 
 def menu_func(self, context):
-    self.layout.operator(RoundRectMaker.bl_idname, icon="META_PLANE")
+    self.layout.operator(RndRectMeshMaker.bl_idname, icon="META_PLANE")
 
 
 def register():
-    bpy.utils.register_class(RoundRectMaker)
+    bpy.utils.register_class(RndRectMeshMaker)
     bpy.types.VIEW3D_MT_mesh_add.append(menu_func)
 
 
 def unregister():
-    bpy.utils.unregister_class(RoundRectMaker)
+    bpy.utils.unregister_class(RndRectMeshMaker)
     bpy.types.VIEW3D_MT_mesh_add.remove(menu_func)
