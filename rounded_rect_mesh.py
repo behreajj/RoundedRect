@@ -2,10 +2,10 @@ import bpy
 import math
 import bmesh
 from bpy.props import (
-    IntVectorProperty,
     EnumProperty,
     FloatProperty,
-    FloatVectorProperty)
+    FloatVectorProperty,
+    IntVectorProperty)
 
 bl_info = {
     "name": "Create Rounded Rect Mesh",
