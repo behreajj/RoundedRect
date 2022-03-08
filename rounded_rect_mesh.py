@@ -93,9 +93,6 @@ class RndRectMeshMaker(bpy.types.Operator):
         default=0.0)
 
     def execute(self, context):
-        # TODO: Option to create a curve instead? Maybe make a separate
-        # script, but include in same repo.
-
         tl_res = self.sectors[0]
         tr_res = self.sectors[1]
         br_res = self.sectors[2]
@@ -158,8 +155,7 @@ class RndRectMeshMaker(bpy.types.Operator):
         len_vs = len(vs)
         bm_verts = [None] * len_vs
         for i in range(0, len_vs):
-            v = vs[i]
-            bm_verts[i] = bm.verts.new(v)
+            bm_verts[i] = bm.verts.new(vs[i])
 
         # Create BM faces.
         len_v_indices = len(v_indices)
@@ -212,13 +208,25 @@ class RndRectMeshMaker(bpy.types.Operator):
         top = max(lby, uby)
 
         # Protect from zero dimension meshes.
-        if abs(rgt - lft) < eps:
-            lft = -1.7777778
-            rgt = 1.7777778
-
-        if abs(top - btm) < eps:
-            btm = -1.0
-            top = 1.0
+        w_inval = abs(rgt - lft) < eps
+        h_inval = abs(top - btm) < eps
+        if w_inval and h_inval:
+            cx = (lft + rgt) * 0.5
+            cy = (top + btm) * 0.5
+            lft = cx - 1.7777778
+            rgt = cx + 1.7777778
+            btm = cy - 1.0
+            top = cy + 1.0
+        elif w_inval:
+            cx = (lft + rgt) * 0.5
+            hh = (top - btm) * 0.5
+            lft = cx - hh
+            rgt = cx + hh
+        elif h_inval:
+            cy = (top + btm) * 0.5
+            wh = (rgt - lft) * 0.5
+            btm = cy - wh
+            top = cy + wh
 
         # Calculate width and height for vts.
         w = rgt - lft
@@ -321,56 +329,52 @@ class RndRectMeshMaker(bpy.types.Operator):
         tr_to_theta = half_pi / (v_tr_res + 1.0)
 
         # Top-left arc.
-        if v_tl_res > 0:
-            tl_range = range(0, v_tl_res)
-            for i in tl_range:
-                # Reverse order.
-                j = v_tl_res - 1 - i
-                theta = (j + 1.0) * tl_to_theta
-                x = lft_ins_0 - vtl * math.cos(theta)
-                y = top_ins_1 + vtl * math.sin(theta)
-                vs[tl_crnr_idx_start + 1 + i] = (x, y, 0.0)
-                vts[tl_crnr_idx_start + 1 + i] = (
-                    (x - lft) * w_inv,
-                    (y - btm) * h_inv)
+        tl_range = range(0, v_tl_res)
+        for i in tl_range:
+            # Reverse order.
+            j = v_tl_res - 1 - i
+            theta = (j + 1.0) * tl_to_theta
+            x = lft_ins_0 - vtl * math.cos(theta)
+            y = top_ins_1 + vtl * math.sin(theta)
+            vs[tl_crnr_idx_start + 1 + i] = (x, y, 0.0)
+            vts[tl_crnr_idx_start + 1 + i] = (
+                (x - lft) * w_inv,
+                (y - btm) * h_inv)
 
         # Bottom-left arc.
-        if v_bl_res > 0:
-            bl_range = range(0, v_bl_res)
-            for i in bl_range:
-                theta = (i + 1.0) * bl_to_theta
-                x = lft_ins_1 - vbl * math.cos(theta)
-                y = btm_ins_1 - vbl * math.sin(theta)
-                vs[bl_crnr_idx_start + 1 + i] = (x, y, 0.0)
-                vts[bl_crnr_idx_start + 1 + i] = (
-                    (x - lft) * w_inv,
-                    (y - btm) * h_inv)
+        bl_range = range(0, v_bl_res)
+        for i in bl_range:
+            theta = (i + 1.0) * bl_to_theta
+            x = lft_ins_1 - vbl * math.cos(theta)
+            y = btm_ins_1 - vbl * math.sin(theta)
+            vs[bl_crnr_idx_start + 1 + i] = (x, y, 0.0)
+            vts[bl_crnr_idx_start + 1 + i] = (
+                (x - lft) * w_inv,
+                (y - btm) * h_inv)
 
         # Bottom-right arc.
-        if v_br_res > 0:
-            br_range = range(0, v_br_res)
-            for i in br_range:
-                # Reverse order.
-                j = v_br_res - 1 - i
-                theta = (j + 1.0) * br_to_theta
-                x = rgt_ins_1 + vbr * math.cos(theta)
-                y = btm_ins_0 - vbr * math.sin(theta)
-                vs[br_crnr_idx_start + 1 + i] = (x, y, 0.0)
-                vts[br_crnr_idx_start + 1 + i] = (
-                    (x - lft) * w_inv,
-                    (y - btm) * h_inv)
+        br_range = range(0, v_br_res)
+        for i in br_range:
+            # Reverse order.
+            j = v_br_res - 1 - i
+            theta = (j + 1.0) * br_to_theta
+            x = rgt_ins_1 + vbr * math.cos(theta)
+            y = btm_ins_0 - vbr * math.sin(theta)
+            vs[br_crnr_idx_start + 1 + i] = (x, y, 0.0)
+            vts[br_crnr_idx_start + 1 + i] = (
+                (x - lft) * w_inv,
+                (y - btm) * h_inv)
 
         # Top-right arc.
-        if v_tr_res > 0:
-            tr_range = range(0, v_tr_res)
-            for i in tr_range:
-                theta = (i + 1.0) * tr_to_theta
-                x = rgt_ins_0 + vtr * math.cos(theta)
-                y = top_ins_0 + vtr * math.sin(theta)
-                vs[tr_crnr_idx_start + 1 + i] = (x, y, 0.0)
-                vts[tr_crnr_idx_start + 1 + i] = (
-                    (x - lft) * w_inv,
-                    (y - btm) * h_inv)
+        tr_range = range(0, v_tr_res)
+        for i in tr_range:
+            theta = (i + 1.0) * tr_to_theta
+            x = rgt_ins_0 + vtr * math.cos(theta)
+            y = top_ins_0 + vtr * math.sin(theta)
+            vs[tr_crnr_idx_start + 1 + i] = (x, y, 0.0)
+            vts[tr_crnr_idx_start + 1 + i] = (
+                (x - lft) * w_inv,
+                (y - btm) * h_inv)
 
         if poly == "NGON":
             v_arr = [0] * len_vs

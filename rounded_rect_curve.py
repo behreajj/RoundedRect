@@ -118,13 +118,25 @@ class RndRectCurveMaker(bpy.types.Operator):
         top = max(lby, uby)
 
         # Protect from zero dimension curves.
-        if abs(rgt - lft) < eps:
-            lft = -1.7777778
-            rgt = 1.7777778
-
-        if abs(top - btm) < eps:
-            btm = -1.0
-            top = 1.0
+        w_inval = abs(rgt - lft) < eps
+        h_inval = abs(top - btm) < eps
+        if w_inval and h_inval:
+            cx = (lft + rgt) * 0.5
+            cy = (top + btm) * 0.5
+            lft = cx - 1.7777778
+            rgt = cx + 1.7777778
+            btm = cy - 1.0
+            top = cy + 1.0
+        elif w_inval:
+            cx = (lft + rgt) * 0.5
+            hh = (top - btm) * 0.5
+            lft = cx - hh
+            rgt = cx + hh
+        elif h_inval:
+            cy = (top + btm) * 0.5
+            wh = (rgt - lft) * 0.5
+            btm = cy - wh
+            top = cy + wh
 
         # Validate corner insetting.
         # Half the short edge is the maximum size.
