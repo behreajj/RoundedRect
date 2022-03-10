@@ -259,38 +259,13 @@ class RndRectMeshMaker(bpy.types.Operator):
         rgt_ins_1 = rgt - vbr
 
         # Initialize data arrays.
+        # For QUAD and TRI, add 4 in-corner points.
         len_vs = 8 + v_tl_res + v_bl_res + v_br_res + v_tr_res
-        len_indices = 0
-        non_corner_faces = 0
-
-        # TODO: Consolidate with subsequent if-else?
-        if poly == "NGON":
-            len_indices = 1
-        else:
-            # For QUAD and TRI, add 4 in-corner points.
+        if poly != "NGON":
             len_vs = len_vs + 4
-
-            # Sum the number of vertices per arc.
-            v_res_total = v_tl_res + v_tr_res + v_br_res + v_bl_res
-
-            # For n vertices, there is n + 1 faces.
-            f_res_total = v_res_total + 4
-
-            # One center rectangle, four edges.
-            # For triangles, multiply by two.
-            if poly == "QUAD":
-                non_corner_faces = 5
-                len_indices = non_corner_faces + f_res_total
-            else:
-                non_corner_faces = 10
-                len_indices = non_corner_faces + f_res_total
-
         vs = [(0.0, 0.0, 0.0)] * len_vs
         vts = [(0.5, 0.5)] * len_vs
         vns = [(0.0, 0.0, 1.0)]
-
-        v_indices = []
-        vn_indices = []
 
         # Calculate index offsets.
         tl_crnr_idx_start = 0
@@ -378,13 +353,11 @@ class RndRectMeshMaker(bpy.types.Operator):
 
         if poly == "NGON":
             v_arr = [0] * len_vs
-            vt_arr = [0] * len_vs
             vn_arr = [0] * len_vs
 
             i_range = range(0, len_vs)
             for i in i_range:
                 v_arr[i] = i
-                vt_arr[i] = i
 
             v_indices = [tuple(v_arr)]
             vn_indices = [tuple(vn_arr)]
@@ -408,13 +381,25 @@ class RndRectMeshMaker(bpy.types.Operator):
             vts[tr_in_crnr_idx] = ((rgt_ins_0 - lft) *
                                    w_inv, (top_ins_0 - btm) * h_inv)
 
+            # Sum the number of vertices per arc.
+            # For n vertices, there are n + 1 faces.
+            v_res_total = v_tl_res + v_tr_res + v_br_res + v_bl_res
+            f_res_total = v_res_total + 4
+
             # Assign to three tuples. For poly type quads, some
             # will be replaced by four tuples.
-            v_indices = [(0, 0, 0)] * len_indices
-            vn_indices = [(0, 0, 0)] * len_indices
+            len_indices = 0
+            non_corner_faces = 0
+            v_indices = []
+            vn_indices = []
 
             # Create non-corner faces: center, left, bottom, right, top.
             if poly == "QUAD":
+                non_corner_faces = 5
+                len_indices = non_corner_faces + f_res_total
+                v_indices = [(0, 0, 0)] * len_indices
+                vn_indices = [(0, 0, 0)] * len_indices
+
                 v_indices[0] = (tl_tn_crnr_idx, bl_in_crnr_idx,
                                 br_in_crnr_idx, tr_in_crnr_idx)
                 v_indices[1] = (tl_crnr_idx_end, bl_crnr_idx_start,
@@ -432,6 +417,11 @@ class RndRectMeshMaker(bpy.types.Operator):
                 vn_indices[3] = (0, 0, 0, 0)
                 vn_indices[4] = (0, 0, 0, 0)
             else:
+                non_corner_faces = 10
+                len_indices = non_corner_faces + f_res_total
+                v_indices = [(0, 0, 0)] * len_indices
+                vn_indices = [(0, 0, 0)] * len_indices
+
                 v_indices[0] = (tl_tn_crnr_idx, bl_in_crnr_idx, tr_in_crnr_idx)
                 v_indices[1] = (bl_in_crnr_idx, br_in_crnr_idx, tr_in_crnr_idx)
                 v_indices[2] = (tl_crnr_idx_end,
