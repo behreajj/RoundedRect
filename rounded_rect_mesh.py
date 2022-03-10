@@ -263,8 +263,9 @@ class RndRectMeshMaker(bpy.types.Operator):
         len_indices = 0
         non_corner_faces = 0
 
+        # TODO: Consolidate with subsequent if-else?
         if poly == "NGON":
-            len_indices = len_vs
+            len_indices = 1
         else:
             # For QUAD and TRI, add 4 in-corner points.
             len_vs = len_vs + 4
@@ -289,7 +290,6 @@ class RndRectMeshMaker(bpy.types.Operator):
         vns = [(0.0, 0.0, 1.0)]
 
         v_indices = []
-        vt_indices = []
         vn_indices = []
 
         # Calculate index offsets.
@@ -387,7 +387,6 @@ class RndRectMeshMaker(bpy.types.Operator):
                 vt_arr[i] = i
 
             v_indices = [tuple(v_arr)]
-            vt_indices = [tuple(vt_arr)]
             vn_indices = [tuple(vn_arr)]
         else:
             # Insert inner vertices for quad and tri.
@@ -412,7 +411,6 @@ class RndRectMeshMaker(bpy.types.Operator):
             # Assign to three tuples. For poly type quads, some
             # will be replaced by four tuples.
             v_indices = [(0, 0, 0)] * len_indices
-            vt_indices = [(0, 0, 0)] * len_indices
             vn_indices = [(0, 0, 0)] * len_indices
 
             # Create non-corner faces: center, left, bottom, right, top.
@@ -427,17 +425,6 @@ class RndRectMeshMaker(bpy.types.Operator):
                                 br_crnr_idx_end, tr_crnr_idx_start)
                 v_indices[4] = (tl_crnr_idx_start, tl_tn_crnr_idx,
                                 tr_in_crnr_idx, tr_crnr_idx_end)
-
-                vt_indices[0] = (tl_tn_crnr_idx, bl_in_crnr_idx,
-                                 br_in_crnr_idx, tr_in_crnr_idx)
-                vt_indices[1] = (tl_crnr_idx_end, bl_crnr_idx_start,
-                                 bl_in_crnr_idx, tl_tn_crnr_idx)
-                vt_indices[2] = (bl_in_crnr_idx, bl_crnr_idx_end,
-                                 br_crnr_idx_start, br_in_crnr_idx)
-                vt_indices[3] = (tr_in_crnr_idx, br_in_crnr_idx,
-                                 br_crnr_idx_end, tr_crnr_idx_start)
-                vt_indices[4] = (tl_crnr_idx_start, tl_tn_crnr_idx,
-                                 tr_in_crnr_idx, tr_crnr_idx_end)
 
                 vn_indices[0] = (0, 0, 0, 0)
                 vn_indices[1] = (0, 0, 0, 0)
@@ -464,27 +451,6 @@ class RndRectMeshMaker(bpy.types.Operator):
                 v_indices[9] = (tl_tn_crnr_idx, tr_in_crnr_idx,
                                 tr_crnr_idx_end)
 
-                vt_indices[0] = (
-                    tl_tn_crnr_idx, bl_in_crnr_idx, tr_in_crnr_idx)
-                vt_indices[1] = (
-                    bl_in_crnr_idx, br_in_crnr_idx, tr_in_crnr_idx)
-                vt_indices[2] = (
-                    tl_crnr_idx_end, bl_crnr_idx_start, tl_tn_crnr_idx)
-                vt_indices[3] = (bl_crnr_idx_start,
-                                 bl_in_crnr_idx, tl_tn_crnr_idx)
-                vt_indices[4] = (
-                    bl_in_crnr_idx, bl_crnr_idx_end, br_in_crnr_idx)
-                vt_indices[5] = (
-                    bl_crnr_idx_end, br_crnr_idx_start, br_in_crnr_idx)
-                vt_indices[6] = (
-                    tr_in_crnr_idx, br_in_crnr_idx, tr_crnr_idx_start)
-                vt_indices[7] = (
-                    br_in_crnr_idx, br_crnr_idx_end, tr_crnr_idx_start)
-                vt_indices[8] = (tl_crnr_idx_start,
-                                 tl_tn_crnr_idx, tr_crnr_idx_end)
-                vt_indices[9] = (
-                    tl_tn_crnr_idx, tr_in_crnr_idx,  tr_crnr_idx_end)
-
             # Create corner faces:
             # Top-left, Bottom-left, Bottom-right, Top-right.
 
@@ -507,7 +473,6 @@ class RndRectMeshMaker(bpy.types.Operator):
                 b = tl_crnr_idx_start + i
                 c = b + 1
                 v_indices[j] = (tl_tn_crnr_idx, b, c)
-                vt_indices[j] = (tl_tn_crnr_idx, b, c)
 
             # Bottom-left corner.
             fbl_range = range(0, f_bl_res)
@@ -516,7 +481,6 @@ class RndRectMeshMaker(bpy.types.Operator):
                 b = bl_crnr_idx_start + i
                 c = b + 1
                 v_indices[j] = (bl_in_crnr_idx, b, c)
-                vt_indices[j] = (bl_in_crnr_idx, b, c)
 
             # Bottom-right corner.
             fbr_range = range(0, f_br_res)
@@ -525,7 +489,6 @@ class RndRectMeshMaker(bpy.types.Operator):
                 b = br_crnr_idx_start + i
                 c = b + 1
                 v_indices[j] = (br_in_crnr_idx, b, c)
-                vt_indices[j] = (br_in_crnr_idx, b, c)
 
             # Top-right corner.
             ftr_range = range(0, f_tr_res)
@@ -534,14 +497,13 @@ class RndRectMeshMaker(bpy.types.Operator):
                 b = tr_crnr_idx_start + i
                 c = b + 1
                 v_indices[j] = (tr_in_crnr_idx, b, c)
-                vt_indices[j] = (tr_in_crnr_idx, b, c)
 
         # Return a dictionary containing data.
         return {"vs": vs,
                 "vts": vts,
                 "vns": vns,
                 "v_indices": v_indices,
-                "vt_indices": vt_indices,
+                "vt_indices": v_indices.copy(),
                 "vn_indices": vn_indices}
 
 

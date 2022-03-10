@@ -97,9 +97,13 @@ class RndRectCurveMaker(bpy.types.Operator):
         max=1.0,
         step=1,
         precision=3,
+        subtype="FACTOR",
         default=0.0)
 
     def execute(self, context):
+        # TODO: How to support adding to an existing curve
+        # while in edit mode?
+
         # Constants.
         eps = 0.000001
         k = 0.5522847498307936
@@ -127,8 +131,10 @@ class RndRectCurveMaker(bpy.types.Operator):
         top = max(lby, uby)
 
         # Protect from zero dimension curves.
-        w_inval = abs(rgt - lft) < eps
-        h_inval = abs(top - btm) < eps
+        w = rgt - lft
+        h = top - btm
+        w_inval = w < eps
+        h_inval = h < eps
         if w_inval and h_inval:
             cx = (lft + rgt) * 0.5
             cy = (top + btm) * 0.5
@@ -138,17 +144,19 @@ class RndRectCurveMaker(bpy.types.Operator):
             top = cy + 1.0
         elif w_inval:
             cx = (lft + rgt) * 0.5
-            hh = (top - btm) * 0.5
-            lft = cx - hh
-            rgt = cx + hh
+            h_half = h * 0.5
+            lft = cx - h_half
+            rgt = cx + h_half
         elif h_inval:
             cy = (top + btm) * 0.5
-            wh = (rgt - lft) * 0.5
-            btm = cy - wh
-            top = cy + wh
+            w_half = w * 0.5
+            btm = cy - w_half
+            top = cy + w_half
 
         # Validate corner insetting.
         # Half the short edge is the maximum size.
+        # TODO: Can 1.0 be supported instead of 1.0 - eps,
+        # i.e., consolidate knots that would form a circle?
         se = 0.5 * min(rgt - lft, top - btm)
         vtl = se * min(max(tl, 0.0), 1.0 - eps)
         vbl = se * min(max(bl, 0.0), 1.0 - eps)
@@ -180,13 +188,13 @@ class RndRectCurveMaker(bpy.types.Operator):
         # Calculate knot count.
         kn_count = 4
         if tl_is_round:
-            kn_count += 1
+            kn_count = kn_count + 1
         if bl_is_round:
-            kn_count += 1
+            kn_count = kn_count + 1
         if br_is_round:
-            kn_count += 1
+            kn_count = kn_count + 1
         if tr_is_round:
-            kn_count += 1
+            kn_count = kn_count + 1
 
         # Initialize arrays.
         cos = [(0.0, 0.0, 0.0)] * kn_count
@@ -203,80 +211,80 @@ class RndRectCurveMaker(bpy.types.Operator):
             fhs[cursor] = (lft_ins_0 - vtlk, top, 0.0)
             rhs[cursor] = (t_3 * lft_ins_0 + o_3 * rgt_ins_0, top, 0.0)
             rh_types[cursor] = straight_edge
-            cursor += 1
+            cursor = cursor + 1
 
             cos[cursor] = (lft, top_ins_1, 0.0)
             fhs[cursor] = (lft, t_3 * top_ins_1 + o_3 * btm_ins_1, 0.0)
             rhs[cursor] = (lft, top_ins_1 + vtlk, 0.0)
             fh_types[cursor] = straight_edge
-            cursor += 1
+            cursor = cursor + 1
         else:
             cos[cursor] = (lft, top, 0.0)
             fhs[cursor] = (lft, t_3 * top + o_3 * btm_ins_1, 0.0)
             rhs[cursor] = (t_3 * lft + o_3 * rgt_ins_0, top, 0.0)
             fh_types[cursor] = straight_edge
             rh_types[cursor] = straight_edge
-            cursor += 1
+            cursor = cursor + 1
 
         if bl_is_round:
             cos[cursor] = (lft, btm_ins_1, 0.0)
             fhs[cursor] = (lft, btm_ins_1 - vblk, 0.0)
             rhs[cursor] = (lft, t_3 * btm_ins_1 + o_3 * top_ins_1, 0.0)
             rh_types[cursor] = straight_edge
-            cursor += 1
+            cursor = cursor + 1
 
             cos[cursor] = (lft_ins_1, btm, 0.0)
             fhs[cursor] = (t_3 * lft_ins_1 + o_3 * rgt_ins_1, btm, 0.0)
             rhs[cursor] = (lft_ins_1 - vblk, btm, 0.0)
             fh_types[cursor] = straight_edge
-            cursor += 1
+            cursor = cursor + 1
         else:
             cos[cursor] = (lft, btm, 0.0)
             fhs[cursor] = (t_3 * lft + o_3 * rgt_ins_1, btm, 0.0)
             rhs[cursor] = (lft, t_3 * btm + o_3 * top_ins_1, 0.0)
             fh_types[cursor] = straight_edge
             rh_types[cursor] = straight_edge
-            cursor += 1
+            cursor = cursor + 1
 
         if br_is_round:
             cos[cursor] = (rgt_ins_1, btm, 0.0)
             fhs[cursor] = (rgt_ins_1 + vbrk, btm, 0.0)
             rhs[cursor] = (t_3 * rgt_ins_1 + o_3 * lft_ins_1, btm, 0.0)
             rh_types[cursor] = straight_edge
-            cursor += 1
+            cursor = cursor + 1
 
             cos[cursor] = (rgt, btm_ins_0, 0.0)
             fhs[cursor] = (rgt, t_3 * btm_ins_0 + o_3 * top_ins_0, 0.0)
             rhs[cursor] = (rgt, btm_ins_0 - vbrk, 0.0)
             fh_types[cursor] = straight_edge
-            cursor += 1
+            cursor = cursor + 1
         else:
             cos[cursor] = (rgt, btm, 0.0)
             fhs[cursor] = (rgt, t_3 * btm + o_3 * top_ins_0, 0.0)
             rhs[cursor] = (t_3 * rgt + o_3 * lft_ins_1, btm, 0.0)
             fh_types[cursor] = straight_edge
             rh_types[cursor] = straight_edge
-            cursor += 1
+            cursor = cursor + 1
 
         if tr_is_round:
             cos[cursor] = (rgt, top_ins_0, 0.0)
             fhs[cursor] = (rgt, top_ins_0 + vtrk, 0.0)
             rhs[cursor] = (rgt, t_3 * top_ins_0 + o_3 * btm_ins_0, 0.0)
             rh_types[cursor] = straight_edge
-            cursor += 1
+            cursor = cursor + 1
 
             cos[cursor] = (rgt_ins_0, top, 0.0)
             fhs[cursor] = (t_3 * rgt_ins_0 + o_3 * lft_ins_0, top, 0.0)
             rhs[cursor] = (rgt_ins_0 + vtrk, top, 0.0)
             fh_types[cursor] = straight_edge
-            cursor += 1
+            cursor = cursor + 1
         else:
             cos[cursor] = (rgt, top, 0.0)
             fhs[cursor] = (t_3 * rgt + o_3 * lft_ins_0, top, 0.0)
             rhs[cursor] = (rgt, t_3 * top + o_3 * btm_ins_0, 0.0)
             fh_types[cursor] = straight_edge
             rh_types[cursor] = straight_edge
-            cursor += 1
+            cursor = cursor + 1
 
         crv_data = bpy.data.curves.new("Rectangle", "CURVE")
         crv_data.dimensions = "2D"
