@@ -92,6 +92,15 @@ class RndRectMeshMaker(bpy.types.Operator):
         precision=3,
         default=0.0)
 
+    uv_profile: EnumProperty(
+        items=[
+            ("CONTAIN", "Contain", "Contain", 1),
+            ("COVER", "Cover", "Cover", 2),
+            ("STRETCH", "Stretch", "Stretch", 3)],
+        name="UV Profile",
+        default="CONTAIN",
+        description="UV Profile to use")
+
     def execute(self, context):
         tl_res = self.sectors[0]
         tr_res = self.sectors[1]
@@ -110,7 +119,8 @@ class RndRectMeshMaker(bpy.types.Operator):
             br=self.rounding[2], bl=self.rounding[3],
             tl_res=tl_res, tr_res=tr_res,
             br_res=br_res, bl_res=bl_res,
-            poly=self.poly_type)
+            poly=self.poly_type,
+            profile=self.uv_profile)
 
         bm = RndRectMeshMaker.mesh_data_to_bmesh(
             vs=data["vs"],
@@ -195,7 +205,8 @@ class RndRectMeshMaker(bpy.types.Operator):
             br=0.25, bl=0.25,
             tl_res=16, tr_res=16,
             br_res=16, bl_res=16,
-            poly="QUAD"):
+            poly="QUAD",
+            profile="STRETCH"):
 
         # Constants.
         eps = 0.000001
@@ -233,6 +244,20 @@ class RndRectMeshMaker(bpy.types.Operator):
         h = top - btm
         w_inv = 1.0 / w
         h_inv = 1.0 / h
+
+        # UV coordinate scalars according to profile.
+        u_scl = 1.0
+        v_scl = 1.0
+        if profile == "CONTAIN":
+            if w < h:
+                u_scl = w / h
+            elif w > h:
+                v_scl = h / w
+        elif profile == "COVER":
+            if w < h:
+                v_scl = h / w
+            elif w > h:
+                u_scl = w / h
 
         # Validate corner factor.
         tl_fac = min(abs(tl), 1.0 - eps)
@@ -302,14 +327,32 @@ class RndRectMeshMaker(bpy.types.Operator):
         vs[tr_crnr_idx_end] = (rgt_ins_0, top, 0.0)
 
         # Texture coordinate corners at start and end of arc.
-        vts[tl_crnr_idx_str] = (vtl * w_inv, 1.0)
-        vts[tl_crnr_idx_end] = (0.0, (top_ins_1 - btm) * h_inv)
-        vts[bl_crnr_idx_str] = (0.0, vbl * h_inv)
-        vts[bl_crnr_idx_end] = (vbl * w_inv, 0.0)
-        vts[br_crnr_idx_str] = ((rgt_ins_1 - lft) * w_inv, 0.0)
-        vts[br_crnr_idx_end] = (1.0, vbr * h_inv)
-        vts[tr_crnr_idx_str] = (1.0, (top_ins_0 - btm) * h_inv)
-        vts[tr_crnr_idx_end] = ((rgt_ins_0 - lft) * w_inv, 1.0)
+        u0, v0 = vtl * w_inv, 1.0
+        u1, v1 = 0.0, (top_ins_1 - btm) * h_inv
+        u2, v2, = 0.0, vbl * h_inv
+        u3, v3 = vbl * w_inv, 0.0
+        u4, v4 = (rgt_ins_1 - lft) * w_inv, 0.0
+        u5, v5 = 1.0, vbr * h_inv
+        u6, v6 = 1.0, (top_ins_0 - btm) * h_inv
+        u7, v7 = (rgt_ins_0 - lft) * w_inv, 1.0
+
+        # Multiply by aspect ratio.
+        vts[tl_crnr_idx_str] = (u0 - 0.5) * u_scl + 0.5, \
+                               (v0 - 0.5) * v_scl + 0.5
+        vts[tl_crnr_idx_end] = (u1 - 0.5) * u_scl + 0.5, \
+                               (v1 - 0.5) * v_scl + 0.5
+        vts[bl_crnr_idx_str] = (u2 - 0.5) * u_scl + 0.5, \
+                               (v2 - 0.5) * v_scl + 0.5
+        vts[bl_crnr_idx_end] = (u3 - 0.5) * u_scl + 0.5, \
+                               (v3 - 0.5) * v_scl + 0.5
+        vts[br_crnr_idx_str] = (u4 - 0.5) * u_scl + 0.5, \
+                               (v4 - 0.5) * v_scl + 0.5
+        vts[br_crnr_idx_end] = (u5 - 0.5) * u_scl + 0.5, \
+                               (v5 - 0.5) * v_scl + 0.5
+        vts[tr_crnr_idx_str] = (u6 - 0.5) * u_scl + 0.5, \
+                               (v6 - 0.5) * v_scl + 0.5
+        vts[tr_crnr_idx_end] = (u7 - 0.5) * u_scl + 0.5, \
+                               (v7 - 0.5) * v_scl + 0.5
 
         # Find conversion from resolution to theta.
         tl_to_theta = half_pi / (v_tl_res + 1.0)
@@ -322,64 +365,78 @@ class RndRectMeshMaker(bpy.types.Operator):
             tl_range = range(0, v_tl_res)
             for i in tl_range:
                 # Reverse order.
-                j = v_tl_res - 1 - i
-                theta = (j + 1.0) * tl_to_theta
+                theta = (v_tl_res - i) * tl_to_theta
                 x = lft_ins_0 - vtl * math.cos(theta)
                 y = top_ins_1 + vtl * math.sin(theta)
+                u = (x - lft) * w_inv
+                v = (y - btm) * h_inv
                 vs[tl_crnr_idx_str + 1 + i] = (x, y, 0.0)
                 vts[tl_crnr_idx_str + 1 + i] = (
-                    (x - lft) * w_inv,
-                    (y - btm) * h_inv)
+                    (u - 0.5) * u_scl + 0.5,
+                    (v - 0.5) * v_scl + 0.5)
         else:
             vs[tl_crnr_idx_str + 1] = (lft, top, 0.0)
-            vts[tl_crnr_idx_str + 1] = (0.0, 1.0)
+            u, v = 0.0, 1.0
+            vts[tl_crnr_idx_str + 1] = (u - 0.5) * u_scl + 0.5, \
+                                       (v - 0.5) * v_scl + 0.5
 
         # Bottom-left arc.
         if bl_is_rnd:
             bl_range = range(0, v_bl_res)
             for i in bl_range:
-                theta = (i + 1.0) * bl_to_theta
+                theta = (i + 1) * bl_to_theta
                 x = lft_ins_1 - vbl * math.cos(theta)
                 y = btm_ins_1 - vbl * math.sin(theta)
+                u = (x - lft) * w_inv
+                v = (y - btm) * h_inv
                 vs[bl_crnr_idx_str + 1 + i] = (x, y, 0.0)
                 vts[bl_crnr_idx_str + 1 + i] = (
-                    (x - lft) * w_inv,
-                    (y - btm) * h_inv)
+                    (u - 0.5) * u_scl + 0.5,
+                    (v - 0.5) * v_scl + 0.5)
         else:
             vs[bl_crnr_idx_str + 1] = (lft, btm, 0.0)
-            vts[bl_crnr_idx_str + 1] = (0.0, 0.0)
+            u, v = 0.0, 0.0
+            vts[bl_crnr_idx_str + 1] = (u - 0.5) * u_scl + 0.5, \
+                                       (v - 0.5) * v_scl + 0.5
 
         # Bottom-right arc.
         if br_is_rnd:
             br_range = range(0, v_br_res)
             for i in br_range:
                 # Reverse order.
-                j = v_br_res - 1 - i
-                theta = (j + 1.0) * br_to_theta
+                theta = (v_br_res - i) * br_to_theta
                 x = rgt_ins_1 + vbr * math.cos(theta)
                 y = btm_ins_0 - vbr * math.sin(theta)
+                u = (x - lft) * w_inv
+                v = (y - btm) * h_inv
                 vs[br_crnr_idx_str + 1 + i] = (x, y, 0.0)
                 vts[br_crnr_idx_str + 1 + i] = (
-                    (x - lft) * w_inv,
-                    (y - btm) * h_inv)
+                    (u - 0.5) * u_scl + 0.5,
+                    (v - 0.5) * v_scl + 0.5)
         else:
             vs[br_crnr_idx_str + 1] = (rgt, btm, 0.0)
-            vts[br_crnr_idx_str + 1] = (1.0, 0.0)
+            u, v = 1.0, 0.0
+            vts[br_crnr_idx_str + 1] = (u - 0.5) * u_scl + 0.5, \
+                                       (v - 0.5) * v_scl + 0.5
 
         # Top-right arc.
         if tr_is_rnd:
             tr_range = range(0, v_tr_res)
             for i in tr_range:
-                theta = (i + 1.0) * tr_to_theta
+                theta = (i + 1) * tr_to_theta
                 x = rgt_ins_0 + vtr * math.cos(theta)
                 y = top_ins_0 + vtr * math.sin(theta)
+                u = (x - lft) * w_inv
+                v = (y - btm) * h_inv
                 vs[tr_crnr_idx_str + 1 + i] = (x, y, 0.0)
                 vts[tr_crnr_idx_str + 1 + i] = (
-                    (x - lft) * w_inv,
-                    (y - btm) * h_inv)
+                    (u - 0.5) * u_scl + 0.5,
+                    (v - 0.5) * v_scl + 0.5)
         else:
             vs[tr_crnr_idx_str + 1] = (rgt, top, 0.0)
-            vts[tr_crnr_idx_str + 1] = (1.0, 1.0)
+            u, v = 1.0, 1.0
+            vts[tr_crnr_idx_str + 1] = (u - 0.5) * u_scl + 0.5, \
+                                       (v - 0.5) * v_scl + 0.5
 
         if poly == "NGON":
             v_arr = [0] * len_vs
@@ -403,14 +460,20 @@ class RndRectMeshMaker(bpy.types.Operator):
             vs[tr_in_crnr_idx] = (rgt_ins_0, top_ins_0, 0.0)
 
             # Inner texture coordinate corners.
-            vts[tl_tn_crnr_idx] = (vtl * w_inv,
-                                   (top_ins_1 - btm) * h_inv)
-            vts[bl_in_crnr_idx] = (vbl * w_inv,
-                                   vbl * h_inv)
-            vts[br_in_crnr_idx] = ((rgt_ins_1 - lft) * w_inv,
-                                   vbr * h_inv)
-            vts[tr_in_crnr_idx] = ((rgt_ins_0 - lft) * w_inv,
-                                   (top_ins_0 - btm) * h_inv)
+            ui0, vi0 = vtl * w_inv, (top_ins_1 - btm) * h_inv
+            ui1, vi1 = vbl * w_inv, vbl * h_inv
+            ui2, vi2 = (rgt_ins_1 - lft) * w_inv, vbr * h_inv
+            ui3, vi3 = (rgt_ins_0 - lft) * w_inv, (top_ins_0 - btm) * h_inv
+
+            # Multiply by aspect ratio.
+            vts[tl_tn_crnr_idx] = (ui0 - 0.5) * u_scl + 0.5, \
+                                  (vi0 - 0.5) * v_scl + 0.5
+            vts[bl_in_crnr_idx] = (ui1 - 0.5) * u_scl + 0.5, \
+                                  (vi1 - 0.5) * v_scl + 0.5
+            vts[br_in_crnr_idx] = (ui2 - 0.5) * u_scl + 0.5, \
+                                  (vi2 - 0.5) * v_scl + 0.5
+            vts[tr_in_crnr_idx] = (ui3 - 0.5) * u_scl + 0.5, \
+                                  (vi3 - 0.5) * v_scl + 0.5
 
             # Sum the number of vertices per arc.
             # For n vertices, there are n + 1 faces.
