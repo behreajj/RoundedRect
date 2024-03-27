@@ -11,7 +11,7 @@ bl_info = {
     "name": "Create Rounded Rect Mesh",
     "author": "Jeremy Behreandt",
     "version": (0, 1),
-    "blender": (3, 0, 1),
+    "blender": (4, 1, 0),
     "category": "Add Mesh",
     "description": "Creates a rounded rectangle mesh.",
     "tracker_url": "https://github.com/behreajj/RoundedRect"
@@ -107,11 +107,6 @@ class RndRectMeshMaker(bpy.types.Operator):
         br_res = self.sectors[2]
         bl_res = self.sectors[3]
 
-        use_smooth = tl_res > 0 \
-            or tr_res > 0 \
-            or br_res > 0 \
-            or bl_res > 0
-
         data = RndRectMeshMaker.create_rect_mesh(
             lbx=self.tl[0], lby=self.br[1],
             ubx=self.br[0], uby=self.tl[1],
@@ -128,13 +123,10 @@ class RndRectMeshMaker(bpy.types.Operator):
             vns=data["vns"],
             v_indices=data["v_indices"],
             vt_indices=data["vt_indices"],
-            vn_indices=data["vn_indices"],
-            use_smooth_shading=use_smooth)
+            vn_indices=data["vn_indices"])
 
         mesh_data = bpy.data.meshes.new("Rectangle")
-        mesh_data.use_auto_smooth = use_smooth
-        mesh_data.auto_smooth_angle = 0.523599
-
+        
         bm.to_mesh(mesh_data)
         bm.free()
         mesh_obj = bpy.data.objects.new(mesh_data.name, mesh_data)
@@ -156,8 +148,7 @@ class RndRectMeshMaker(bpy.types.Operator):
     @staticmethod
     def mesh_data_to_bmesh(
             vs, vts, vns,
-            v_indices, vt_indices, vn_indices,
-            use_smooth_shading=True):
+            v_indices, vt_indices, vn_indices):
 
         bm = bmesh.new()
 
@@ -186,7 +177,6 @@ class RndRectMeshMaker(bpy.types.Operator):
             # Create BM face.
             bm_face = bm.faces.new(face_verts)
             bm_faces[i] = bm_face
-            bm_face.smooth = use_smooth_shading
             bm_face_loops = list(bm_face.loops)
 
             # Assign texture coordinates and normals.
