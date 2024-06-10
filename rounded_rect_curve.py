@@ -55,11 +55,11 @@ class RndRectCurveMaker(bpy.types.Operator):
         precision=3,
         size=4) # type: ignore
 
-    # TODO: Support Aligned Type
     straight_edge: EnumProperty(
         items=[
-            ("FREE", "Free", "Free", 1),
-            ("VECTOR", "Vector", "Vector", 2)],
+            ("ALIGNED", "Aligned", "Aligned", 1),
+            ("FREE", "Free", "Free", 2),
+            ("VECTOR", "Vector", "Vector", 3)],
         name="Handle Type",
         default="FREE",
         description="Handle type to use for straight edges") # type: ignore
@@ -122,7 +122,10 @@ class RndRectCurveMaker(bpy.types.Operator):
         br = self.rounding[2]
         bl = self.rounding[3]
 
-        straight_edge = self.straight_edge
+        straight_handle_type = self.straight_edge
+        corner_handle_type = "FREE"
+        if straight_handle_type == "ALIGNED":
+            corner_handle_type = "ALIGNED"
 
         # Validate corners.
         lft = min(lbx, ubx)
@@ -200,8 +203,8 @@ class RndRectCurveMaker(bpy.types.Operator):
         cos = [(0.0, 0.0, 0.0)] * kn_count
         fhs = [(0.0, 0.0, 0.0)] * kn_count
         rhs = [(0.0, 0.0, 0.0)] * kn_count
-        fh_types = ["FREE"] * kn_count
-        rh_types = ["FREE"] * kn_count
+        fh_types = [corner_handle_type] * kn_count
+        rh_types = [corner_handle_type] * kn_count
 
         # Might not be worth suporting this, because parity would be
         # difficult in the mesh version anyway...
@@ -210,80 +213,96 @@ class RndRectCurveMaker(bpy.types.Operator):
             cos[cursor] = (lft_ins_0, top, 0.0)
             fhs[cursor] = (lft_ins_0 - vtlk, top, 0.0)
             rhs[cursor] = (t_3 * lft_ins_0 + o_3 * rgt_ins_0, top, 0.0)
-            rh_types[cursor] = straight_edge
+            rh_types[cursor] = straight_handle_type
             cursor = cursor + 1
 
             cos[cursor] = (lft, top_ins_1, 0.0)
             fhs[cursor] = (lft, t_3 * top_ins_1 + o_3 * btm_ins_1, 0.0)
             rhs[cursor] = (lft, top_ins_1 + vtlk, 0.0)
-            fh_types[cursor] = straight_edge
+            fh_types[cursor] = straight_handle_type
             cursor = cursor + 1
         else:
             cos[cursor] = (lft, top, 0.0)
             fhs[cursor] = (lft, t_3 * top + o_3 * btm_ins_1, 0.0)
             rhs[cursor] = (t_3 * lft + o_3 * rgt_ins_0, top, 0.0)
-            fh_types[cursor] = straight_edge
-            rh_types[cursor] = straight_edge
+            if straight_handle_type == "ALIGNED":
+                fh_types[cursor] = "VECTOR"
+                rh_types[cursor] = "VECTOR"
+            else:
+                fh_types[cursor] = straight_handle_type
+                rh_types[cursor] = straight_handle_type
             cursor = cursor + 1
 
         if bl_is_round:
             cos[cursor] = (lft, btm_ins_1, 0.0)
             fhs[cursor] = (lft, btm_ins_1 - vblk, 0.0)
             rhs[cursor] = (lft, t_3 * btm_ins_1 + o_3 * top_ins_1, 0.0)
-            rh_types[cursor] = straight_edge
+            rh_types[cursor] = straight_handle_type
             cursor = cursor + 1
 
             cos[cursor] = (lft_ins_1, btm, 0.0)
             fhs[cursor] = (t_3 * lft_ins_1 + o_3 * rgt_ins_1, btm, 0.0)
             rhs[cursor] = (lft_ins_1 - vblk, btm, 0.0)
-            fh_types[cursor] = straight_edge
+            fh_types[cursor] = straight_handle_type
             cursor = cursor + 1
         else:
             cos[cursor] = (lft, btm, 0.0)
             fhs[cursor] = (t_3 * lft + o_3 * rgt_ins_1, btm, 0.0)
             rhs[cursor] = (lft, t_3 * btm + o_3 * top_ins_1, 0.0)
-            fh_types[cursor] = straight_edge
-            rh_types[cursor] = straight_edge
+            if straight_handle_type == "ALIGNED":
+                fh_types[cursor] = "VECTOR"
+                rh_types[cursor] = "VECTOR"
+            else:
+                fh_types[cursor] = straight_handle_type
+                rh_types[cursor] = straight_handle_type
             cursor = cursor + 1
 
         if br_is_round:
             cos[cursor] = (rgt_ins_1, btm, 0.0)
             fhs[cursor] = (rgt_ins_1 + vbrk, btm, 0.0)
             rhs[cursor] = (t_3 * rgt_ins_1 + o_3 * lft_ins_1, btm, 0.0)
-            rh_types[cursor] = straight_edge
+            rh_types[cursor] = straight_handle_type
             cursor = cursor + 1
 
             cos[cursor] = (rgt, btm_ins_0, 0.0)
             fhs[cursor] = (rgt, t_3 * btm_ins_0 + o_3 * top_ins_0, 0.0)
             rhs[cursor] = (rgt, btm_ins_0 - vbrk, 0.0)
-            fh_types[cursor] = straight_edge
+            fh_types[cursor] = straight_handle_type
             cursor = cursor + 1
         else:
             cos[cursor] = (rgt, btm, 0.0)
             fhs[cursor] = (rgt, t_3 * btm + o_3 * top_ins_0, 0.0)
             rhs[cursor] = (t_3 * rgt + o_3 * lft_ins_1, btm, 0.0)
-            fh_types[cursor] = straight_edge
-            rh_types[cursor] = straight_edge
+            if straight_handle_type == "ALIGNED":
+                fh_types[cursor] = "VECTOR"
+                rh_types[cursor] = "VECTOR"
+            else:
+                fh_types[cursor] = straight_handle_type
+                rh_types[cursor] = straight_handle_type
             cursor = cursor + 1
 
         if tr_is_round:
             cos[cursor] = (rgt, top_ins_0, 0.0)
             fhs[cursor] = (rgt, top_ins_0 + vtrk, 0.0)
             rhs[cursor] = (rgt, t_3 * top_ins_0 + o_3 * btm_ins_0, 0.0)
-            rh_types[cursor] = straight_edge
+            rh_types[cursor] = straight_handle_type
             cursor = cursor + 1
 
             cos[cursor] = (rgt_ins_0, top, 0.0)
             fhs[cursor] = (t_3 * rgt_ins_0 + o_3 * lft_ins_0, top, 0.0)
             rhs[cursor] = (rgt_ins_0 + vtrk, top, 0.0)
-            fh_types[cursor] = straight_edge
+            fh_types[cursor] = straight_handle_type
             cursor = cursor + 1
         else:
             cos[cursor] = (rgt, top, 0.0)
             fhs[cursor] = (t_3 * rgt + o_3 * lft_ins_0, top, 0.0)
             rhs[cursor] = (rgt, t_3 * top + o_3 * btm_ins_0, 0.0)
-            fh_types[cursor] = straight_edge
-            rh_types[cursor] = straight_edge
+            if straight_handle_type == "ALIGNED":
+                fh_types[cursor] = "VECTOR"
+                rh_types[cursor] = "VECTOR"
+            else:
+                fh_types[cursor] = straight_handle_type
+                rh_types[cursor] = straight_handle_type
             cursor = cursor + 1
 
         crv_data = bpy.data.curves.new("Rectangle", "CURVE")
