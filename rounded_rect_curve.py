@@ -1,5 +1,4 @@
 import bpy
-import math
 from bpy.props import (
     EnumProperty,
     FloatProperty,
@@ -33,7 +32,7 @@ class RndRectCurveMaker(bpy.types.Operator):
         step=1,
         precision=3,
         size=2,
-        subtype="COORDINATES")
+        subtype="COORDINATES") # type: ignore
 
     br: FloatVectorProperty(
         name="Bottom Right",
@@ -44,7 +43,7 @@ class RndRectCurveMaker(bpy.types.Operator):
         step=1,
         precision=3,
         size=2,
-        subtype="COORDINATES")
+        subtype="COORDINATES") # type: ignore
 
     rounding: FloatVectorProperty(
         name="Corner",
@@ -54,22 +53,23 @@ class RndRectCurveMaker(bpy.types.Operator):
         max=0.999,
         step=1,
         precision=3,
-        size=4)
+        size=4) # type: ignore
 
+    # TODO: Support Aligned Type
     straight_edge: EnumProperty(
         items=[
             ("FREE", "Free", "Free", 1),
             ("VECTOR", "Vector", "Vector", 2)],
         name="Handle Type",
         default="FREE",
-        description="Handle type to use for straight edges")
+        description="Handle type to use for straight edges") # type: ignore
 
     res_u: IntProperty(
         name="Resolution",
         description="Corner resolution",
         min=1,
         soft_max=64,
-        default=12)
+        default=12) # type: ignore
 
     fill_mode: EnumProperty(
         items=[
@@ -79,7 +79,7 @@ class RndRectCurveMaker(bpy.types.Operator):
             ("BOTH", "Both", "Both", 4)],
         name="Fill Mode",
         default="BOTH",
-        description="Fill mode to use")
+        description="Fill mode to use") # type: ignore
 
     extrude_thick: FloatProperty(
         name="Extrude",
@@ -88,7 +88,7 @@ class RndRectCurveMaker(bpy.types.Operator):
         soft_max=1.0,
         step=1,
         precision=3,
-        default=0.0)
+        default=0.0) # type: ignore
 
     extrude_off: FloatProperty(
         name="Offset",
@@ -98,7 +98,7 @@ class RndRectCurveMaker(bpy.types.Operator):
         step=1,
         precision=3,
         subtype="FACTOR",
-        default=0.0)
+        default=0.0) # type: ignore
 
     def execute(self, context):
         # TODO: How to support adding to an existing curve
