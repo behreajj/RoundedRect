@@ -34,7 +34,7 @@ class RndRectMeshMaker(bpy.types.Operator):
         step=1,
         precision=3,
         size=2,
-        subtype="COORDINATES")
+        subtype="COORDINATES") # type: ignore
 
     br: FloatVectorProperty(
         name="Bottom Right",
@@ -45,7 +45,7 @@ class RndRectMeshMaker(bpy.types.Operator):
         step=1,
         precision=3,
         size=2,
-        subtype="COORDINATES")
+        subtype="COORDINATES") # type: ignore
 
     rounding: FloatVectorProperty(
         name="Corner",
@@ -55,7 +55,7 @@ class RndRectMeshMaker(bpy.types.Operator):
         max=0.999,
         step=1,
         precision=3,
-        size=4)
+        size=4) # type: ignore
 
     sectors: IntVectorProperty(
         name="Resolution",
@@ -63,7 +63,7 @@ class RndRectMeshMaker(bpy.types.Operator):
         default=(8, 8, 8, 8),
         min=0,
         soft_max=32,
-        size=4)
+        size=4) # type: ignore
 
     poly_type: EnumProperty(
         items=[
@@ -72,7 +72,7 @@ class RndRectMeshMaker(bpy.types.Operator):
             ("TRI", "Triangle", "Triangle", 3)],
         name="Polygon Type",
         default="QUAD",
-        description="Polygon type to use")
+        description="Polygon type to use") # type: ignore
 
     extrude_thick: FloatProperty(
         name="Extrude",
@@ -81,7 +81,7 @@ class RndRectMeshMaker(bpy.types.Operator):
         soft_max=1.0,
         step=1,
         precision=3,
-        default=0.0)
+        default=0.0) # type: ignore
 
     extrude_off: FloatProperty(
         name="Offset",
@@ -90,7 +90,7 @@ class RndRectMeshMaker(bpy.types.Operator):
         max=1.0,
         step=1,
         precision=3,
-        default=0.0)
+        default=0.0) # type: ignore
 
     uv_profile: EnumProperty(
         items=[
@@ -99,7 +99,7 @@ class RndRectMeshMaker(bpy.types.Operator):
             ("STRETCH", "Stretch", "Stretch", 3)],
         name="UV Profile",
         default="CONTAIN",
-        description="UV Profile to use")
+        description="UV Profile to use") # type: ignore
 
     def execute(self, context):
         tl_res = self.sectors[0]
