@@ -9,7 +9,7 @@ bl_info = {
     "name": "Create Rounded Rect Curve",
     "author": "Jeremy Behreandt",
     "version": (0, 2),
-    "blender": (3, 0, 1),
+    "blender": (4, 1, 0),
     "category": "Add Curve",
     "description": "Creates a rounded rectangle curve.",
     "tracker_url": "https://github.com/behreajj/RoundedRect"
