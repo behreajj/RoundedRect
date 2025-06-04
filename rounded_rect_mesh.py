@@ -1,7 +1,7 @@
-import bpy
+import bpy # type: ignore
 import math
-import bmesh
-from bpy.props import (
+import bmesh # type: ignore
+from bpy.props import ( # type: ignore
     EnumProperty,
     FloatProperty,
     FloatVectorProperty,
@@ -138,7 +138,7 @@ class RndRectMeshMaker(bpy.types.Operator):
             ext_mod.offset = self.extrude_off
             ext_mod.show_in_editmode = False
 
-        context.scene.collection.objects.link(mesh_obj)
+        context.collection.objects.link(mesh_obj)
         return {"FINISHED"}
 
     @classmethod
